@@ -1,257 +1,260 @@
-const SPREADSHEET_ID = "1KQD-F-LuOCRR5ONjWWLCAUZUU1JeZI0qUgF8s2Wvgdo";
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mustmissme - กรอกข้อมูลจัดส่ง</title>
+  <link href="https://fonts.googleapis.com/css2?family=Mali&display=swap" rel="stylesheet">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-// LINE Login Channel ID
-const LINE_LOGIN_CHANNEL_ID = "2012195926";
+  <style>
+    * { box-sizing: border-box; }
 
-const CUSTOMER_SHEET = "CUSTOMERS";
-const ORDER_SHEET = "Form_Responses";
-
-// ===== API (รับคำขอจากหน้าเว็บที่โฮสต์บน GitHub Pages) =====
-
-function doPost(e) {
-  try {
-    const body = JSON.parse(e.postData.contents);
-    let data;
-
-    if (body.action === "getCustomer") {
-      data = getCustomer(body.idToken);
-    } else if (body.action === "saveSubmission") {
-      data = saveSubmission(
-        body.idToken,
-        body.mode,
-        body.order,
-        body.name,
-        body.address,
-        body.zipcode,
-        body.phone
-      );
-    } else {
-      throw new Error("ไม่พบ action ที่ร้องขอ");
+    body {
+      background: #fcb1d6;
+      font-family: "Mali", sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
     }
 
-    return jsonOut({ ok: true, data: data });
-  } catch (err) {
-    return jsonOut({ ok: false, error: err.message });
-  }
-}
-
-// ไว้เช็กว่า API ทำงานอยู่ (เปิด URL /exec ในเบราว์เซอร์จะเห็นข้อความนี้)
-function doGet() {
-  return jsonOut({ ok: true, message: "API พร้อมใช้งาน" });
-}
-
-function jsonOut(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ===== สร้างชีตและหัวตารางที่จำเป็น โดยไม่ลบข้อมูลเดิม =====
-
-function setupSheets() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  let customers = ss.getSheetByName(CUSTOMER_SHEET);
-  if (!customers) {
-    customers = ss.insertSheet(CUSTOMER_SHEET);
-  }
-
-  if (customers.getLastRow() === 0) {
-    customers.appendRow([
-      "LINE User ID",
-      "ชื่อ",
-      "ที่อยู่",
-      "รหัสไปรษณีย์",
-      "เบอร์โทร",
-      "อัปเดตล่าสุด"
-    ]);
-  }
-
-  let orders = ss.getSheetByName(ORDER_SHEET);
-  if (!orders) {
-    orders = ss.insertSheet(ORDER_SHEET);
-  }
-
-  if (orders.getLastRow() === 0) {
-    orders.appendRow([
-      "วันที่บันทึก",
-      "รอบพรี/สินค้า",
-      "ชื่อ",
-      "ที่อยู่",
-      "รหัสไปรษณีย์",
-      "เบอร์โทร",
-      "LINE User ID",
-      "สถานะ"
-    ]);
-  } else {
-    if (!orders.getRange("G1").getValue()) {
-      orders.getRange("G1").setValue("LINE User ID");
-    }
-    if (!orders.getRange("H1").getValue()) {
-      orders.getRange("H1").setValue("สถานะ");
-    }
-  }
-
-  return "ตั้งค่าชีตเรียบร้อย";
-}
-
-// ===== ตรวจสอบ ID token กับ LINE ก่อนใช้ LINE User ID =====
-
-function verifyLineToken(idToken) {
-  if (!idToken || !LINE_LOGIN_CHANNEL_ID ||
-      LINE_LOGIN_CHANNEL_ID === "ใส่_LINE_LOGIN_CHANNEL_ID") {
-    throw new Error("ยังตั้งค่า LINE Login Channel ID ไม่ครบ");
-  }
-
-  const response = UrlFetchApp.fetch(
-    "https://api.line.me/oauth2/v2.1/verify",
-    {
-      method: "post",
-      payload: {
-        id_token: idToken,
-        client_id: LINE_LOGIN_CHANNEL_ID
-      },
-      muteHttpExceptions: true
-    }
-  );
-
-  const result = JSON.parse(response.getContentText());
-
-  if (response.getResponseCode() !== 200 || !result.sub) {
-    throw new Error("ยืนยันบัญชี LINE ไม่สำเร็จ กรุณาเปิดหน้าเว็บผ่าน LINE ใหม่");
-  }
-
-  return result.sub;
-}
-
-// ===== ดึงข้อมูลลูกค้า =====
-
-function getCustomer(idToken) {
-  const lineUserId = verifyLineToken(idToken);
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(CUSTOMER_SHEET);
-
-  if (!sheet || sheet.getLastRow() < 2) {
-    return { found: false };
-  }
-
-  const rows = sheet.getRange(
-    2, 1, sheet.getLastRow() - 1, 6
-  ).getDisplayValues();
-
-  for (let i = 0; i < rows.length; i++) {
-    if (rows[i][0] === lineUserId) {
-      return {
-        found: true,
-        name: rows[i][1],
-        address: rows[i][2],
-        zipcode: rows[i][3],
-        phone: rows[i][4]
-      };
-    }
-  }
-
-  return { found: false };
-}
-
-// ===== บันทึกออเดอร์ / อัปเดตที่อยู่ =====
-
-function saveSubmission(idToken, mode, order, name, address, zipcode, phone) {
-  const lineUserId = verifyLineToken(idToken);
-
-  name = String(name || "").trim();
-  address = String(address || "").trim();
-  zipcode = String(zipcode || "").trim();
-  phone = String(phone || "").trim();
-  order = String(order || "").trim();
-
-  if (!name || !address || !zipcode || !phone) {
-    throw new Error("กรุณากรอกชื่อ ที่อยู่ รหัสไปรษณีย์ และเบอร์โทรให้ครบ");
-  }
-
-  if (mode === "newOrder" && !order) {
-    throw new Error("กรุณากรอกรอบพรี/สินค้า");
-  }
-
-  if (mode !== "newOrder" && mode !== "updateAddress") {
-    throw new Error("ไม่พบรูปแบบการบันทึกที่ถูกต้อง");
-  }
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const customers = ss.getSheetByName(CUSTOMER_SHEET);
-    const orders = ss.getSheetByName(ORDER_SHEET);
-
-    if (!customers || !orders) {
-      throw new Error("ยังไม่มีชีตที่จำเป็น กรุณารัน setupSheets ก่อน");
+    .container {
+      background: #fee998;
+      padding: 25px;
+      width: 100%;
+      max-width: 600px;
+      border-radius: 20px;
+      margin: 35px auto;
     }
 
-    // อัปเดตข้อมูลลูกค้าคนเดิม หรือเพิ่มลูกค้าใหม่
-    const customerRow = findCustomerRow(customers, lineUserId);
-    const customerData = [
-      lineUserId, name, address, zipcode, phone, new Date()
-    ];
-
-    if (customerRow) {
-      customers.getRange(customerRow, 1, 1, 6).setValues([customerData]);
-    } else {
-      customers.appendRow(customerData);
+    h1 {
+      color: #ff66b2;
+      font-size: clamp(32px, 8vw, 48px);
+      margin-bottom: 5px;
     }
 
-    if (mode === "updateAddress") {
-      // เปลี่ยนที่อยู่ให้เฉพาะออเดอร์ที่ยังรอจัดส่ง
-      const lastRow = orders.getLastRow();
+    h2 {
+      color: #6600ca;
+      font-size: 25px;
+      margin-top: 0;
+    }
 
-      if (lastRow >= 2) {
-        const rows = orders.getRange(2, 1, lastRow - 1, 8).getValues();
+    .popup-box {
+      background: #fee998;
+      padding: 22px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 420px;
+      margin: auto;
+    }
 
-        rows.forEach((row, index) => {
-          if (
-            String(row[6]) === lineUserId &&
-            String(row[7]).trim() === "รอจัดส่ง"
-          ) {
-            orders.getRange(index + 2, 3, 1, 4).setValues([[
-              name, address, zipcode, phone
-            ]]);
-          }
-        });
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 15px;
+      font-family: "Mali", sans-serif;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    textarea { resize: vertical; }
+    #order { height: 75px; }
+    #address { height: 100px; }
+
+    button {
+      background: #ff66b2;
+      border: none;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: "Mali", sans-serif;
+      font-size: 15px;
+      margin: 6px 0;
+      width: 100%;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .secondary { background: #6600ca; }
+
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+      color: #000;
+      overflow-wrap: anywhere;
+    }
+
+    .note {
+      font-size: 13px;
+      color: #634b27;
+      margin: 8px 0 15px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>mustmissme</h1>
+    <h2>ข้อมูลจัดส่ง</h2>
+
+    <div class="popup-box">
+      <div id="status">กำลังเชื่อมต่อ LINE...</div>
+
+      <textarea id="order" placeholder="รอบพรี/สินค้า (กรอกตอนสั่งรอบใหม่)"></textarea>
+      <input id="name" placeholder="ชื่อ-นามสกุล" autocomplete="name">
+      <textarea id="address" placeholder="ที่อยู่" autocomplete="street-address"></textarea>
+      <input id="zipcode" placeholder="รหัสไปรษณีย์" inputmode="numeric" autocomplete="postal-code">
+      <input id="phone" placeholder="เบอร์โทร" inputmode="tel" autocomplete="tel">
+
+      <div class="note">
+        หากต้องการเปลี่ยนที่อยู่ ให้กดอัปเดตที่อยู่เดิม
+      </div>
+
+      <button id="orderBtn" disabled onclick="submitData('newOrder')">
+        บันทึก
+      </button>
+
+      <button id="addressBtn" class="secondary" disabled onclick="submitData('updateAddress')">
+        อัปเดตที่อยู่เดิม
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = "2012195926-1eZDGU46";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwSlN_4_ODAjWNzltFyKRs0iUWKIrj50I208RxQWXqIXbTTmFtHLqI7-Bmrgc6n3phd/exec"; // เช่น https://script.google.com/macros/s/xxxx/exec
+
+    let idToken = "";
+
+    const statusBox = document.getElementById("status");
+    const orderBtn = document.getElementById("orderBtn");
+    const addressBtn = document.getElementById("addressBtn");
+
+    function setStatus(message) {
+      statusBox.textContent = message;
+    }
+
+    function setButtonsEnabled(enabled) {
+      orderBtn.disabled = !enabled;
+      addressBtn.disabled = !enabled;
+    }
+
+    // ใช้ text/plain เพื่อไม่ให้เกิด CORS preflight (GAS ไม่รองรับ OPTIONS)
+    async function callApi(payload) {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "เกิดข้อผิดพลาด");
+      return json.data;
+    }
+
+    async function startLine() {
+      setButtonsEnabled(false);
+      setStatus("กำลังเชื่อมต่อ LINE...");
+
+      try {
+        if (typeof liff === "undefined") {
+          throw new Error("โหลด LINE SDK ไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ");
+        }
+
+        if (API_URL.includes("ใส่_")) {
+          throw new Error("ยังไม่ได้ใส่ API_URL ของ GAS");
+        }
+
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          setStatus("กำลังเข้าสู่ระบบ LINE...");
+          liff.login();
+          return;
+        }
+
+        idToken = liff.getIDToken();
+        if (!idToken) {
+          throw new Error("ไม่พบ ID Token กรุณาตรวจสอบว่า LIFF เปิด Scope openid แล้ว");
+        }
+
+        setStatus("กำลังโหลดข้อมูลลูกค้า...");
+        const customer = await callApi({ action: "getCustomer", idToken });
+
+        if (customer && customer.found) {
+          document.getElementById("name").value = customer.name || "";
+          document.getElementById("address").value = customer.address || "";
+          document.getElementById("zipcode").value = customer.zipcode || "";
+          document.getElementById("phone").value = customer.phone || "";
+          setStatus("💗 โหลดข้อมูลที่อยู่เดิมแล้ว");
+        } else {
+          setStatus("ยินดีต้อนรับ 💗 กรุณากรอกข้อมูลจัดส่ง");
+        }
+
+        setButtonsEnabled(true);
+
+      } catch (error) {
+        console.error("LIFF error:", error);
+        setStatus("เชื่อมต่อไม่สำเร็จ: " + (error && error.message ? error.message : error));
+      }
+    }
+
+    async function submitData(mode) {
+      if (!idToken) {
+        setStatus("ยังยืนยันบัญชี LINE ไม่สำเร็จ กรุณาเปิดหน้าเว็บใหม่");
+        return;
       }
 
-      return { status: "success", message: "อัปเดตที่อยู่เรียบร้อย" };
+      const data = {
+        order: document.getElementById("order").value.trim(),
+        name: document.getElementById("name").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        zipcode: document.getElementById("zipcode").value.trim(),
+        phone: document.getElementById("phone").value.trim()
+      };
+
+      if (!data.name || !data.address || !data.zipcode || !data.phone) {
+        setStatus("❗ กรุณากรอกชื่อ ที่อยู่ รหัสไปรษณีย์ และเบอร์โทรให้ครบ");
+        return;
+      }
+
+      if (mode === "newOrder" && !data.order) {
+        setStatus("❗ กรุณากรอกรอบพรี/สินค้าก่อนบันทึกออเดอร์ใหม่");
+        return;
+      }
+
+      setButtonsEnabled(false);
+      setStatus("กำลังบันทึกข้อมูล...");
+
+      try {
+        const result = await callApi({
+          action: "saveSubmission",
+          idToken: idToken,
+          mode: mode,
+          order: data.order,
+          name: data.name,
+          address: data.address,
+          zipcode: data.zipcode,
+          phone: data.phone
+        });
+
+        setStatus("✅ " + result.message);
+        if (mode === "newOrder") {
+          document.getElementById("order").value = "";
+        }
+      } catch (error) {
+        setStatus("❌ บันทึกไม่สำเร็จ: " + (error && error.message ? error.message : error));
+      }
+
+      setButtonsEnabled(true);
     }
 
-    // ทุกออเดอร์ใหม่จะมีแถวของตัวเอง
-    orders.appendRow([
-      new Date(),
-      order,
-      name,
-      address,
-      zipcode,
-      phone,
-      lineUserId,
-      "รอจัดส่ง"
-    ]);
-
-    return { status: "success", message: "บันทึกออเดอร์เรียบร้อย" };
-
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function findCustomerRow(sheet, lineUserId) {
-  if (sheet.getLastRow() < 2) return null;
-
-  const ids = sheet.getRange(
-    2, 1, sheet.getLastRow() - 1, 1
-  ).getDisplayValues();
-
-  for (let i = 0; i < ids.length; i++) {
-    if (ids[i][0] === lineUserId) return i + 2;
-  }
-
-  return null;
-}
+    startLine();
+  </script>
+</body>
+</html>
