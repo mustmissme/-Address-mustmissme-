@@ -10,9 +10,12 @@
   <style>
     * { box-sizing: border-box; }
 
+    /* แก้ความกว้างปุ่มทั้งหมดที่นี่ที่เดียว เช่น 100%, 80%, 250px */
+    :root { --btn-width: 100%; }
+
     body {
       background: #fcb1d6;
-      font-family: "Mali", sans-serif;
+      font-family: "Noto sans thai";
       text-align: center;
       margin: 0;
       padding: 20px;
@@ -54,7 +57,7 @@
       margin: 8px 0;
       border: none;
       border-radius: 15px;
-      font-family: "Mali", sans-serif;
+      font-family: "Noto sans thai";
       font-size: 15px;
       text-align: center;
     }
@@ -70,10 +73,11 @@
       padding: 12px 16px;
       border-radius: 20px;
       cursor: pointer;
-      font-family: "Mali", sans-serif;
+      font-family: "Noto sans thai";
       font-size: 15px;
-      margin: 6px 0;
-      width: 100%;
+      display: block;
+      margin: 6px auto;
+      width: 70%;
     }
 
     button:disabled {
@@ -82,6 +86,9 @@
     }
 
     .secondary { background: #6600ca; }
+
+    /* ปุ่มที่ 3: พื้นดำ ตัวอักษรขาว */
+    .dark { background: #000; color: #fff; }
 
     #status {
       margin-top: 15px;
@@ -94,6 +101,38 @@
       font-size: 13px;
       color: #634b27;
       margin: 8px 0 15px;
+    }
+
+    .my-address {
+      margin: 10px auto 0;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .order-card {
+      background: #fff;
+      border-radius: 15px;
+      padding: 12px 14px;
+      margin: 10px 0;
+      text-align: left;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+      white-space: pre-line;
+    }
+
+    .order-card .order-title {
+      color: #ff66b2;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .order-card .order-address {
+      color: #333;
+    }
+
+    .empty-orders {
+      font-size: 14px;
+      color: #634b27;
     }
   </style>
 </head>
@@ -123,12 +162,20 @@
       <button id="addressBtn" class="secondary" disabled onclick="submitData('updateAddress')">
         อัปเดตที่อยู่เดิม
       </button>
+
+      <button id="myAddressBtn" class="dark" onclick="toggleMyAddress()">
+        My address
+      </button>
+
+      <div id="myAddressBox" class="my-address" style="display:none">
+        <div id="orderList" class="empty-orders">กำลังโหลด...</div>
+      </div>
     </div>
   </div>
 
   <script>
     const LIFF_ID = "2012195926-1eZDGU46";
-    const API_URL = "https://script.google.com/macros/s/AKfycbwwprIAUIHWs0spsUJBqD6DElcxTfC3hNMxkMlo1i1X4sFmMOaF4U-ajmHSB4llwPPY/exec"; // เช่น https://script.google.com/macros/s/xxxx/exec
+    const API_URL = "ใส่_URL_EXEC_ของ_GAS_ตรงนี้"; // เช่น https://script.google.com/macros/s/xxxx/exec
 
     let idToken = "";
 
@@ -138,6 +185,12 @@
 
     function setStatus(message) {
       statusBox.textContent = message;
+    }
+
+    // กดปุ่ม My address เพื่อเปิด/ปิดรายการที่อยู่ของออเดอร์
+    function toggleMyAddress() {
+      const box = document.getElementById("myAddressBox");
+      box.style.display = box.style.display === "none" ? "block" : "none";
     }
 
     function setButtonsEnabled(enabled) {
@@ -155,6 +208,53 @@
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "เกิดข้อผิดพลาด");
       return json.data;
+    }
+
+    // แสดงรายการออเดอร์ของลูกค้า (ใหม่ไปเก่า)
+    // ใช้ textContent เพื่อความปลอดภัย ไม่ให้ข้อความที่ลูกค้าพิมพ์กลายเป็นโค้ด
+    function renderOrders(orders) {
+      const box = document.getElementById("orderList");
+      box.innerHTML = "";
+
+      if (!orders || orders.length === 0) {
+        box.className = "empty-orders";
+        box.textContent = "ยังไม่มีออเดอร์ 💗";
+        return;
+      }
+
+      box.className = "";
+
+      orders.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "order-card";
+
+        const title = document.createElement("div");
+        title.className = "order-title";
+        title.textContent = item.order || "-";
+
+        const addr = document.createElement("div");
+        addr.className = "order-address";
+        addr.textContent =
+          (item.name ? item.name + "\n" : "") +
+          (item.address || "") +
+          (item.zipcode ? " " + item.zipcode : "");
+
+        card.appendChild(title);
+        card.appendChild(addr);
+        box.appendChild(card);
+      });
+    }
+
+    async function loadOrders() {
+      const box = document.getElementById("orderList");
+      try {
+        const result = await callApi({ action: "getOrders", idToken: idToken });
+        renderOrders(result.orders);
+      } catch (error) {
+        box.className = "empty-orders";
+        box.textContent = "โหลดรายการออเดอร์ไม่สำเร็จ: " +
+          (error && error.message ? error.message : error);
+      }
     }
 
     async function startLine() {
@@ -197,6 +297,7 @@
         }
 
         setButtonsEnabled(true);
+        loadOrders();
 
       } catch (error) {
         console.error("LIFF error:", error);
@@ -247,6 +348,7 @@
         if (mode === "newOrder") {
           document.getElementById("order").value = "";
         }
+        loadOrders();
       } catch (error) {
         setStatus("❌ บันทึกไม่สำเร็จ: " + (error && error.message ? error.message : error));
       }
