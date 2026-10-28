@@ -218,7 +218,7 @@
 
       if (!orders || orders.length === 0) {
         box.className = "empty-orders";
-        box.textContent = "ยังไม่มีออเดอร์ 💗";
+        box.textContent = "ยังไม่มีออเดอร์";
         return;
       }
 
@@ -267,7 +267,7 @@
         }
 
         if (API_URL.includes("ใส่_")) {
-          throw new Error("ยังไม่ได้ใส่ API_URL ของ GAS");
+          throw new Error("https://script.google.com/macros/s/AKfycbyYk9vBaPRE7ASsawlOtxVZI9-cxqM27baKbJjYs_sF4mKIgk_uEu6uDrGD-LRL2Q19OQ/exec");
         }
 
         await liff.init({ liffId: LIFF_ID });
@@ -291,9 +291,9 @@
           document.getElementById("address").value = customer.address || "";
           document.getElementById("zipcode").value = customer.zipcode || "";
           document.getElementById("phone").value = customer.phone || "";
-          setStatus("💗 โหลดข้อมูลที่อยู่เดิมแล้ว");
+          setStatus("โหลดข้อมูลที่อยู่เดิมแล้ว");
         } else {
-          setStatus("ยินดีต้อนรับ 💗 กรุณากรอกข้อมูลจัดส่ง");
+          setStatus("ยินดีต้อนรับ กรุณากรอกข้อมูลจัดส่ง");
         }
 
         setButtonsEnabled(true);
