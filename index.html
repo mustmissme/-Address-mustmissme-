@@ -3,81 +3,124 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>mustmissme - กรอกข้อมูลจัดส่ง</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
+  <title>mustmissme - Shipping address</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
     * { box-sizing: border-box; }
 
-    /* แก้ความกว้างปุ่มทั้งหมดที่นี่ที่เดียว เช่น 100%, 80%, 250px */
-    :root { --btn-width: 100%; }
-
-    body {
-      background: #fcb1d6;
-      font-family: "Noto sans thai";
-      text-align: center;
-      margin: 0;
-      padding: 20px;
+    :root {
+      --pink: #ff66c4;
+      --cream: #fff3c2;
+      --grey: #939396;
+      /* แก้ความกว้างปุ่มทั้งหมดที่นี่ที่เดียว เช่น 55%, 70%, 200px */
+      --btn-width: 55%;
     }
 
-    .container {
-      background: #fee998;
-      padding: 25px;
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      background: #ffffff;
+      font-family: "Prompt", sans-serif;
+      color: #000;
+    }
+
+    /* การ์ดหลัก: พื้นชมพู + ส่วนฟอร์มสีครีมซ้อนด้านล่าง */
+    .card {
       width: 100%;
-      max-width: 600px;
-      border-radius: 20px;
-      margin: 35px auto;
+      max-width: 380px;
+      margin: 0 auto;
+      background: var(--pink);
+      border-radius: 32px;
+      overflow: hidden;
+    }
+
+    .header {
+      text-align: center;
+      color: #fff;
+      padding: 26px 20px 24px;
     }
 
     h1 {
-      color: #ff66b2;
-      font-size: clamp(32px, 8vw, 48px);
-      margin-bottom: 5px;
+      margin: 0;
+      font-size: clamp(30px, 9vw, 38px);
+      font-weight: 700;
+      line-height: 1.15;
     }
 
-    h2 {
-      color: #6600ca;
-      font-size: 25px;
-      margin-top: 0 0 8px;
+    .sub {
+      margin: 4px 0 0;
+      font-size: 17px;
+      font-weight: 500;
     }
 
-    .popup-box {
-      background: #fee998;
-      padding: 8px 22px 22px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 420px;
-      margin: auto;
+    .panel {
+      background: var(--cream);
+      border-radius: 30px 30px 0 0;
+      padding: 20px 28px 28px;
+    }
+
+    #status {
+      margin: 0 0 12px;
+      min-height: 1.4em;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: center;
+      overflow-wrap: anywhere;
     }
 
     input, textarea {
+      display: block;
       width: 100%;
-      padding: 12px;
-      margin: 8px 0;
+      padding: 15px 22px;
+      margin: 0 0 14px;
       border: none;
-      border-radius: 15px;
-      font-family: "Noto sans thai";
-      font-size: 15px;
+      border-radius: 24px;
+      background: #fff;
+      color: #000;
+      font-family: inherit;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: var(--grey);
+      font-size: 13px;
+    }
+
+    textarea {
+      resize: none;
+      overflow: hidden;
+      line-height: 1.4;
+      min-height: 50px;
+    }
+
+    #address {
+      min-height: 100px;
+      border-radius: 22px;
+    }
+
+    .note {
+      margin: 2px 0 14px;
+      font-size: 12px;
+      font-weight: 500;
       text-align: center;
     }
 
-    textarea { resize: vertical; }
-    #order { height: 75px; }
-    #address { height: 100px; }
-
     button {
-      background: #ff66b2;
-      border: none;
-      color: white;
-      padding: 12px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-family: "Noto sans thai";
-      font-size: 15px;
       display: block;
-      margin: 6px auto;
-      width: 70%;
+      width: var(--btn-width);
+      margin: 8px auto 0;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 999px;
+      background: var(--pink);
+      color: #fff;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
     }
 
     button:disabled {
@@ -85,90 +128,77 @@
       cursor: not-allowed;
     }
 
-    .secondary { background: #6600ca; }
+    /* ปุ่ม Update: พื้นขาว ตัวอักษรชมพู */
+    .secondary { background: #fff; color: var(--pink); }
 
-    /* ปุ่มที่ 3: พื้นดำ ตัวอักษรขาว */
+    /* ปุ่ม My address: พื้นดำ ตัวอักษรขาว */
     .dark { background: #000; color: #fff; }
 
-    #status {
-      margin-top: 0 0 4px;
-      font-weight: bold;
-      color: #000;
-      overflow-wrap: anywhere;
-    }
-
-    .note {
-      font-size: 13px;
-      color: #634b27;
-      margin: 8px 0 15px;
-    }
-
-    .my-address {
-      margin: 10px auto 0;
-      width: 100%;
-      max-width: 420px;
-    }
+    /* รายการ My address */
+    .my-address { margin-top: 16px; }
 
     .order-card {
+      margin: 10px 0 0;
+      padding: 14px 20px;
       background: #fff;
-      border-radius: 15px;
-      padding: 12px 14px;
-      margin: 10px 0;
+      border-radius: 22px;
       text-align: left;
-      font-size: 14px;
       overflow-wrap: anywhere;
+    }
+
+    .order-item {
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--grey);
       white-space: pre-line;
     }
 
-    .order-card .order-title {
-      color: #ff66b2;
-      font-weight: bold;
-      margin-bottom: 6px;
+    .order-name {
+      color: var(--pink);
+      font-size: 17px;
+      font-weight: 600;
     }
 
-    .order-card .order-address {
-      color: #333;
+    .order-line {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.55;
+      white-space: pre-line;
     }
 
     .empty-orders {
-      font-size: 14px;
-      color: #634b27;
+      font-size: 13px;
+      text-align: center;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>mustmissme</h1>
-    <h2>Shipping Address</h2>
+  <div class="card">
+    <div class="header">
+      <h1>mustmissme</h1>
+      <p class="sub">Shipping address</p>
+    </div>
 
-    <div class="popup-box">
-      <div id="status">กConnecting to LINE...</div>
+    <div class="panel">
+      <div id="status">กำลังเชื่อมต่อ LINE...</div>
 
-      <textarea id="order" placeholder="รอบพรี/สินค้า (กรอกตอนสั่งรอบใหม่)"></textarea>
-      <input id="name" placeholder="ชื่อ-นามสกุล" autocomplete="name">
-      <textarea id="address" placeholder="ที่อยู่" autocomplete="street-address"></textarea>
-      <input id="zipcode" placeholder="รหัสไปรษณีย์" inputmode="numeric" autocomplete="postal-code">
-      <input id="phone" placeholder="เบอร์โทร" inputmode="tel" autocomplete="tel">
+      <textarea id="order" rows="1" placeholder="รอบพรี/สินค้า (กรอกตอนสั่งรอบใหม่)"></textarea>
+      <input id="name" placeholder="Name" autocomplete="name">
+      <textarea id="address" placeholder="Address" autocomplete="street-address"></textarea>
+      <input id="zipcode" placeholder="Postal Code" inputmode="numeric" autocomplete="postal-code">
+      <input id="phone" placeholder="Phone" inputmode="tel" autocomplete="tel">
 
-      <div class="note">
-        หากต้องการเปลี่ยนที่อยู่ ให้กดอัปเดตที่อยู่เดิม
-      </div>
+      <div class="note">หากต้องการเปลี่ยนที่อยู่ให้กด Update</div>
 
-      <button id="orderBtn" disabled onclick="submitData('newOrder')">
-        บันทึก
-      </button>
+      <button id="orderBtn" disabled onclick="submitData('newOrder')">Save</button>
 
-      <button id="addressBtn" class="secondary" disabled onclick="submitData('updateAddress')">
-        อัปเดตที่อยู่เดิม
-      </button>
+      <button id="addressBtn" class="secondary" disabled onclick="submitData('updateAddress')">Update</button>
 
-      <button id="myAddressBtn" class="dark" onclick="toggleMyAddress()">
-        My address
-      </button>
+      <button id="myAddressBtn" class="dark" onclick="toggleMyAddress()">My address</button>
 
       <div id="myAddressBox" class="my-address" style="display:none">
-        <div id="orderList" class="empty-orders">Loading...</div>
+        <div id="orderList" class="empty-orders">กำลังโหลด...</div>
       </div>
     </div>
   </div>
@@ -186,6 +216,16 @@
     function setStatus(message) {
       statusBox.textContent = message;
     }
+
+    // ปรับความสูงช่องข้อความให้พอดีกับสิ่งที่พิมพ์
+    function autoGrow(el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+
+    document.querySelectorAll("textarea").forEach(t => {
+      t.addEventListener("input", () => autoGrow(t));
+    });
 
     // กดปุ่ม My address เพื่อเปิด/ปิดรายการที่อยู่ของออเดอร์
     function toggleMyAddress() {
@@ -206,41 +246,37 @@
         body: JSON.stringify(payload)
       });
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "An error occurred");
+      if (!json.ok) throw new Error(json.error || "เกิดข้อผิดพลาด");
       return json.data;
     }
 
-    // แสดงรายการออเดอร์ของลูกค้า (ใหม่ไปเก่า)
-    // ใช้ textContent เพื่อความปลอดภัย ไม่ให้ข้อความที่ลูกค้าพิมพ์กลายเป็นโค้ด
+    function makeEl(tag, cls, text) {
+      const e = document.createElement(tag);
+      e.className = cls;
+      if (text) e.textContent = text;
+      return e;
+    }
+
+    // แสดงรายการออเดอร์ (ใหม่ไปเก่า) ใช้ textContent เพื่อความปลอดภัย
     function renderOrders(orders) {
       const box = document.getElementById("orderList");
       box.innerHTML = "";
 
       if (!orders || orders.length === 0) {
         box.className = "empty-orders";
-        box.textContent = "ยังไม่มีออเดอร์";
+        box.textContent = "ยังไม่มีออเดอร์ 💗";
         return;
       }
 
       box.className = "";
 
       orders.forEach(item => {
-        const card = document.createElement("div");
-        card.className = "order-card";
-
-        const title = document.createElement("div");
-        title.className = "order-title";
-        title.textContent = item.order || "-";
-
-        const addr = document.createElement("div");
-        addr.className = "order-address";
-        addr.textContent =
-          (item.name ? item.name + "\n" : "") +
-          (item.address || "") +
-          (item.zipcode ? " " + item.zipcode : "");
-
-        card.appendChild(title);
-        card.appendChild(addr);
+        const card = makeEl("div", "order-card");
+        if (item.order) card.appendChild(makeEl("div", "order-item", item.order));
+        card.appendChild(makeEl("div", "order-name", item.name || "-"));
+        if (item.address) card.appendChild(makeEl("div", "order-line", item.address));
+        if (item.zipcode) card.appendChild(makeEl("div", "order-line", item.zipcode));
+        if (item.phone) card.appendChild(makeEl("div", "order-line", item.phone));
         box.appendChild(card);
       });
     }
@@ -259,7 +295,7 @@
 
     async function startLine() {
       setButtonsEnabled(false);
-      setStatus("Connecting to LINE...");
+      setStatus("กำลังเชื่อมต่อ LINE...");
 
       try {
         if (typeof liff === "undefined") {
@@ -267,13 +303,13 @@
         }
 
         if (API_URL.includes("ใส่_")) {
-          throw new Error("https://script.google.com/macros/s/AKfycbyYk9vBaPRE7ASsawlOtxVZI9-cxqM27baKbJjYs_sF4mKIgk_uEu6uDrGD-LRL2Q19OQ/exec");
+          throw new Error("ยังไม่ได้ใส่ API_URL ของ GAS");
         }
 
         await liff.init({ liffId: LIFF_ID });
 
         if (!liff.isLoggedIn()) {
-          setStatus("Logging in to LINE...");
+          setStatus("กำลังเข้าสู่ระบบ LINE...");
           liff.login();
           return;
         }
@@ -283,7 +319,7 @@
           throw new Error("ไม่พบ ID Token กรุณาตรวจสอบว่า LIFF เปิด Scope openid แล้ว");
         }
 
-        setStatus("Loading customer information...");
+        setStatus("กำลังโหลดข้อมูลลูกค้า...");
         const customer = await callApi({ action: "getCustomer", idToken });
 
         if (customer && customer.found) {
@@ -291,9 +327,10 @@
           document.getElementById("address").value = customer.address || "";
           document.getElementById("zipcode").value = customer.zipcode || "";
           document.getElementById("phone").value = customer.phone || "";
-          setStatus("Existing address loaded");
+          autoGrow(document.getElementById("address"));
+          setStatus("💗 โหลดข้อมูลที่อยู่เดิมแล้ว");
         } else {
-          setStatus("Please ensure your address is correct");
+          setStatus("ยินดีต้อนรับ 💗 กรุณากรอกข้อมูลจัดส่ง");
         }
 
         setButtonsEnabled(true);
@@ -301,13 +338,13 @@
 
       } catch (error) {
         console.error("LIFF error:", error);
-        setStatus("Connection failed: " + (error && error.message ? error.message : error));
+        setStatus("เชื่อมต่อไม่สำเร็จ: " + (error && error.message ? error.message : error));
       }
     }
 
     async function submitData(mode) {
       if (!idToken) {
-        setStatus("LINE account verification failed. Please reopen the webpage");
+        setStatus("ยังยืนยันบัญชี LINE ไม่สำเร็จ กรุณาเปิดหน้าเว็บใหม่");
         return;
       }
 
@@ -320,17 +357,17 @@
       };
 
       if (!data.name || !data.address || !data.zipcode || !data.phone) {
-        setStatus("กรุณากรอกชื่อ ที่อยู่ รหัสไปรษณีย์ และเบอร์โทรให้ครบ");
+        setStatus("❗ กรุณากรอกชื่อ ที่อยู่ รหัสไปรษณีย์ และเบอร์โทรให้ครบ");
         return;
       }
 
       if (mode === "newOrder" && !data.order) {
-        setStatus("กรุณากรอกรอบพรี/สินค้าก่อนบันทึกออเดอร์ใหม่");
+        setStatus("❗ กรุณากรอกรอบพรี/สินค้าก่อนบันทึกออเดอร์ใหม่");
         return;
       }
 
       setButtonsEnabled(false);
-      setStatus("Saving information...");
+      setStatus("กำลังบันทึกข้อมูล...");
 
       try {
         const result = await callApi({
@@ -346,11 +383,13 @@
 
         setStatus("✅ " + result.message);
         if (mode === "newOrder") {
-          document.getElementById("order").value = "";
+          const orderBox = document.getElementById("order");
+          orderBox.value = "";
+          autoGrow(orderBox);
         }
         loadOrders();
       } catch (error) {
-        setStatus("❌Failed to save information: " + (error && error.message ? error.message : error));
+        setStatus("❌ บันทึกไม่สำเร็จ: " + (error && error.message ? error.message : error));
       }
 
       setButtonsEnabled(true);
