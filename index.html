@@ -181,7 +181,7 @@
     </div>
 
     <div class="panel">
-      <div id="status">กำลังเชื่อมต่อ LINE...</div>
+      <div id="status">Connecting to LINE...</div>
 
       <textarea id="order" rows="1" placeholder="รอบพรี/สินค้า (กรอกตอนสั่งรอบใหม่)"></textarea>
       <input id="name" placeholder="Name" autocomplete="name">
@@ -198,7 +198,7 @@
       <button id="myAddressBtn" class="dark" onclick="toggleMyAddress()">My address</button>
 
       <div id="myAddressBox" class="my-address" style="display:none">
-        <div id="orderList" class="empty-orders">กำลังโหลด...</div>
+        <div id="orderList" class="empty-orders">Loading...</div>
       </div>
     </div>
   </div>
@@ -295,7 +295,7 @@
 
     async function startLine() {
       setButtonsEnabled(false);
-      setStatus("กำลังเชื่อมต่อ LINE...");
+      setStatus("Connecting to LINE...");
 
       try {
         if (typeof liff === "undefined") {
@@ -309,7 +309,7 @@
         await liff.init({ liffId: LIFF_ID });
 
         if (!liff.isLoggedIn()) {
-          setStatus("กำลังเข้าสู่ระบบ LINE...");
+          setStatus("Connecting to LINE...");
           liff.login();
           return;
         }
@@ -319,7 +319,7 @@
           throw new Error("ไม่พบ ID Token กรุณาตรวจสอบว่า LIFF เปิด Scope openid แล้ว");
         }
 
-        setStatus("กำลังโหลดข้อมูลลูกค้า...");
+        setStatus("Loading...");
         const customer = await callApi({ action: "getCustomer", idToken });
 
         if (customer && customer.found) {
@@ -328,9 +328,9 @@
           document.getElementById("zipcode").value = customer.zipcode || "";
           document.getElementById("phone").value = customer.phone || "";
           autoGrow(document.getElementById("address"));
-          setStatus("💗 โหลดข้อมูลที่อยู่เดิมแล้ว");
+          setStatus("Existing address loaded");
         } else {
-          setStatus("กรุณากรอกข้อมูลจัดส่ง");
+          setStatus("กรอกข้อมูลจัดส่ง");
         }
 
         setButtonsEnabled(true);
@@ -338,7 +338,7 @@
 
       } catch (error) {
         console.error("LIFF error:", error);
-        setStatus("เชื่อมต่อไม่สำเร็จ: " + (error && error.message ? error.message : error));
+        setStatus("Connection failed" + (error && error.message ? error.message : error));
       }
     }
 
@@ -357,17 +357,17 @@
       };
 
       if (!data.name || !data.address || !data.zipcode || !data.phone) {
-        setStatus("❗ กรุณากรอกชื่อ ที่อยู่ รหัสไปรษณีย์ และเบอร์โทรให้ครบ");
+        setStatus("❗ กรอกชื่อ ที่อยู่ รหัสไปรษณีย์ และเบอร์โทรให้ครบ");
         return;
       }
 
       if (mode === "newOrder" && !data.order) {
-        setStatus("❗ กรุณากรอกรอบพรี/สินค้าก่อนบันทึกออเดอร์ใหม่");
+        setStatus("❗ กรอกรอบพรี/สินค้าก่อนบันทึกออเดอร์ใหม่");
         return;
       }
 
       setButtonsEnabled(false);
-      setStatus("กำลังบันทึกข้อมูล...");
+      setStatus("Saving...");
 
       try {
         const result = await callApi({
@@ -389,7 +389,7 @@
         }
         loadOrders();
       } catch (error) {
-        setStatus("❌ บันทึกไม่สำเร็จ: " + (error && error.message ? error.message : error));
+        setStatus("Failed to save" + (error && error.message ? error.message : error));
       }
 
       setButtonsEnabled(true);
